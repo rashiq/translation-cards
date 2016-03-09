@@ -26,6 +26,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -55,15 +56,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import roboguice.RoboGuice;
-import roboguice.activity.RoboActionBarActivity;
-
 /**
  * Activity for the main screen, with lists of phrases to play.
  *
  * @author nick.c.worden@gmail.com (Nick Worden)
  */
-public class TranslationsActivity extends RoboActionBarActivity {
+public class TranslationsActivity extends AppCompatActivity {
 
     private static final String TAG = "TranslationsActivity";
 
@@ -81,7 +79,6 @@ public class TranslationsActivity extends RoboActionBarActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        RoboGuice.setUseAnnotationDatabases(false);
         super.onCreate(savedInstanceState);
         MainApplication application = (MainApplication) getApplication();
         lastMediaPlayerManager = application.getMediaPlayerManager();
