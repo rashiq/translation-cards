@@ -16,30 +16,30 @@
 
 package org.mercycorps.translationcards.data;
 
-import android.content.Context;
-import android.content.res.AssetFileDescriptor;
-import android.media.MediaPlayer;
+import com.orm.SugarRecord;
+import com.orm.dsl.Column;
+import com.orm.dsl.Table;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.Serializable;
+import java.util.List;
 
 /**
  * Contains information about a set of phrases for a particular language.
  *
  * @author nick.c.worden@gmail.com (Nick Worden)
  */
-public class Dictionary {
+@Table(name = "dictionaries")
+public class Dictionary extends SugarRecord {
 
-    private final String label;
-    private final Translation[] translations;
-    private final long dbId;
-    private final long deckId;
+    private String label;
+    @Column(name = "deckId")
+    private long deckId;
 
-    public Dictionary(String label, Translation[] translations, long dbId, long deckId) {
+    public Dictionary() {
+
+    }
+
+    public Dictionary(String label, long deckId) {
         this.label = label;
-        this.translations = translations;
-        this.dbId = dbId;
         this.deckId = deckId;
     }
 
@@ -47,72 +47,24 @@ public class Dictionary {
         return label;
     }
 
+    public List<Translation> getTranslations() {
+        return Translation.find(Translation.class, "dictionaryId = ?", getId().toString());
+    }
+
     public int getTranslationCount() {
-        return translations.length;
+        return getTranslations().size();
     }
 
-    public Translation getTranslation(int index) {
-        return translations[index];
+    @Override
+    public boolean delete() {
+        for (Translation translation : getTranslations()) {
+            translation.delete();
+        }
+
+        return super.delete();
     }
 
-    public long getDbId() {
-        return dbId;
-    }
-
-    public long getDeckId() {
-        return deckId;
-    }
-
-    /**
-     * Contains information about a single phrase.
-     */
-    public static class Translation implements Serializable {
-
-        public static final String DEFAULT_TRANSLATED_TEXT = "";
-        private final String label;
-        private final boolean isAsset;
-        private final String filename;
-        private final long dbId;
-        private final String translatedText;
-
-
-        public Translation(String label, boolean isAsset, String filename, long dbId, String translatedText) {
-            this.label = label;
-            this.isAsset = isAsset;
-            this.filename = filename;
-            this.dbId = dbId;
-            this.translatedText = translatedText;
-        }
-
-        public String getLabel() {
-            return label;
-        }
-
-        public boolean getIsAsset() {
-            return isAsset;
-        }
-
-        public String getFilename() {
-            return filename;
-        }
-
-        public long getDbId() {
-            return dbId;
-        }
-
-        public String getTranslatedText() {
-            return translatedText == null ? DEFAULT_TRANSLATED_TEXT : translatedText;
-        }
-
-
-        public void setMediaPlayerDataSource(Context context, MediaPlayer mp) throws IOException {
-            if (isAsset) {
-                AssetFileDescriptor fd = context.getAssets().openFd(filename);
-                mp.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
-                fd.close();
-            } else {
-                mp.setDataSource(new FileInputStream(filename).getFD());
-            }
-        }
+    public void setDeckId(long deckId) {
+        this.deckId = deckId;
     }
 }

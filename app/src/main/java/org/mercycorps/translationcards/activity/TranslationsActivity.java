@@ -38,17 +38,17 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.google.inject.Inject;
+import com.orm.SugarRecord;
 
-import org.mercycorps.translationcards.media.CardAudioClickListener;
-import org.mercycorps.translationcards.data.DbManager;
-import org.mercycorps.translationcards.porting.ExportException;
 import org.mercycorps.translationcards.MainApplication;
-import org.mercycorps.translationcards.media.MediaPlayerManager;
 import org.mercycorps.translationcards.R;
-import org.mercycorps.translationcards.porting.TxcPortingUtility;
 import org.mercycorps.translationcards.data.Deck;
 import org.mercycorps.translationcards.data.Dictionary;
+import org.mercycorps.translationcards.data.Translation;
+import org.mercycorps.translationcards.media.CardAudioClickListener;
+import org.mercycorps.translationcards.media.MediaPlayerManager;
+import org.mercycorps.translationcards.porting.ExportException;
+import org.mercycorps.translationcards.porting.TxcPortingUtility;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -70,9 +70,7 @@ public class TranslationsActivity extends RoboActionBarActivity {
     private static final int REQUEST_KEY_ADD_CARD = 1;
     private static final int REQUEST_KEY_EDIT_CARD = 2;
 
-    @Inject
-    DbManager dbm;
-    private Dictionary[] dictionaries;
+    private List<Dictionary> dictionaries;
     private int currentDictionaryIndex;
     private TextView[] languageTabTextViews;
     private View[] languageTabBorders;
@@ -87,8 +85,9 @@ public class TranslationsActivity extends RoboActionBarActivity {
         super.onCreate(savedInstanceState);
         MainApplication application = (MainApplication) getApplication();
         lastMediaPlayerManager = application.getMediaPlayerManager();
-        deck = (Deck) getIntent().getSerializableExtra("Deck");
-        dictionaries = dbm.getAllDictionariesForDeck(deck.getDbId());
+        Long deckId = getIntent().getLongExtra(DecksActivity.INTENT_KEY_DECK_ID, -1);
+        deck = Deck.findById(Deck.class, deckId);
+        dictionaries = deck.getDictionaries();
         currentDictionaryIndex = -1;
         setContentView(R.layout.activity_translations);
         initTabs();
@@ -103,11 +102,11 @@ public class TranslationsActivity extends RoboActionBarActivity {
 
     private void initTabs() {
         LayoutInflater inflater = LayoutInflater.from(this);
-        languageTabTextViews = new TextView[dictionaries.length];
-        languageTabBorders = new View[dictionaries.length];
+        languageTabTextViews = new TextView[dictionaries.size()];
+        languageTabBorders = new View[dictionaries.size()];
         LinearLayout tabContainer = (LinearLayout) findViewById(R.id.tabs);
-        for (int i = 0; i < dictionaries.length; i++) {
-            Dictionary dictionary = dictionaries[i];
+        for (int i = 0; i < dictionaries.size(); i++) {
+            Dictionary dictionary = dictionaries.get(i);
             View textFrame = inflater.inflate(R.layout.language_tab, tabContainer, false);
             TextView textView = (TextView) textFrame.findViewById(R.id.tab_label_text);
             textView.setText(dictionary.getLabel().toUpperCase());
@@ -133,7 +132,7 @@ public class TranslationsActivity extends RoboActionBarActivity {
         list.addFooterView(layoutInflater.inflate(R.layout.card_list_footer, list, false));
         listAdapter = new CardListAdapter(
                 this, R.layout.translation_item, R.id.origin_translation_text,
-                new ArrayList<Dictionary.Translation>());
+                new ArrayList<Translation>());
         list.setAdapter(listAdapter);
         ImageButton addTranslationButton = (ImageButton) findViewById(R.id.add_button);
         if (deck.isLocked()) {
@@ -150,7 +149,7 @@ public class TranslationsActivity extends RoboActionBarActivity {
 
     private void setDictionary(int dictionaryIndex) {
         lastMediaPlayerManager.stop();
-        translationCardStates = new boolean[dictionaries[dictionaryIndex].getTranslationCount()];
+        translationCardStates = new boolean[dictionaries.get(dictionaryIndex).getTranslationCount()];
         Arrays.fill(translationCardStates, false);
 
         if (currentDictionaryIndex != -1) {
@@ -163,21 +162,19 @@ public class TranslationsActivity extends RoboActionBarActivity {
         languageTabBorders[dictionaryIndex].setBackgroundColor(
                 ContextCompat.getColor(this, R.color.textColor));
         currentDictionaryIndex = dictionaryIndex;
-        Dictionary dictionary = dictionaries[dictionaryIndex];
+        Dictionary dictionary = dictionaries.get(dictionaryIndex);
         listAdapter.clear();
-        for (int translationIndex = 0;
-             translationIndex < dictionary.getTranslationCount();
-             translationIndex++) {
-            listAdapter.add(dictionary.getTranslation(translationIndex));
+        for (Translation translation : dictionary.getTranslations()) {
+            listAdapter.add(translation);
         }
     }
 
     private void showAddTranslationDialog() {
         Intent intent = new Intent(this, RecordingActivity.class);
         intent.putExtra(RecordingActivity.INTENT_KEY_DICTIONARY_ID,
-                dictionaries[currentDictionaryIndex].getDbId());
+                dictionaries.get(currentDictionaryIndex).getId());
         intent.putExtra(RecordingActivity.INTENT_KEY_DICTIONARY_LABEL,
-                dictionaries[currentDictionaryIndex].getLabel());
+                dictionaries.get(currentDictionaryIndex).getLabel());
         intent.putExtra(DecksActivity.INTENT_KEY_DECK_ID, deck);
         startActivityForResult(intent, REQUEST_KEY_ADD_CARD);
     }
@@ -188,7 +185,7 @@ public class TranslationsActivity extends RoboActionBarActivity {
             case REQUEST_KEY_ADD_CARD:
             case REQUEST_KEY_EDIT_CARD:
                 if (resultCode == RESULT_OK) {
-                    dictionaries = dbm.getAllDictionariesForDeck(deck.getDbId());
+                    dictionaries = deck.getDictionaries();
                     setDictionary(currentDictionaryIndex);
                 }
                 break;
@@ -224,11 +221,11 @@ public class TranslationsActivity extends RoboActionBarActivity {
                 .show();
     }
 
-    private class CardListAdapter extends ArrayAdapter<Dictionary.Translation> {
+    private class CardListAdapter extends ArrayAdapter<Translation> {
 
         public CardListAdapter(
                 Context context, int resource, int textViewResourceId,
-                List<Dictionary.Translation> objects) {
+                List<Translation> objects) {
             super(context, resource, textViewResourceId, objects);
         }
 
@@ -263,7 +260,7 @@ public class TranslationsActivity extends RoboActionBarActivity {
                 deleteView.setVisibility(View.GONE);
             } else {
                 editView.setOnClickListener(new CardEditClickListener(getItem(position)));
-                deleteView.setOnClickListener(new CardDeleteClickListener(getItem(position).getDbId()));
+                deleteView.setOnClickListener(new CardDeleteClickListener(getItem(position).getId()));
             }
 
             TextView cardTextView = (TextView) convertView.findViewById(
@@ -278,7 +275,7 @@ public class TranslationsActivity extends RoboActionBarActivity {
             TextView translatedText = (TextView) convertView.findViewById(R.id.translated_text);
             if(getItem(position).getTranslatedText().isEmpty()){
                 translatedText.setText(String.format(getString(R.string.translated_text_hint),
-                        dictionaries[currentDictionaryIndex].getLabel()));
+                        dictionaries.get(currentDictionaryIndex).getLabel()));
                 translatedText.setTextColor(ContextCompat.getColor(getContext(),
                         R.color.textDisabled));
                 translatedText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
@@ -326,19 +323,19 @@ public class TranslationsActivity extends RoboActionBarActivity {
     }
 
     private class CardEditClickListener implements View.OnClickListener {
-        private Dictionary.Translation translationCard;
+        private Translation translationCard;
 
-        public CardEditClickListener(Dictionary.Translation translationCard) {
+        public CardEditClickListener(Translation translationCard) {
             this.translationCard = translationCard;
         }
 
         @Override
         public void onClick(View view) {
             Intent intent = new Intent(TranslationsActivity.this, RecordingActivity.class);
-            Dictionary dictionary = dictionaries[currentDictionaryIndex];
-            intent.putExtra(RecordingActivity.INTENT_KEY_DICTIONARY_ID, dictionary.getDbId());
+            Dictionary dictionary = dictionaries.get(currentDictionaryIndex);
+            intent.putExtra(RecordingActivity.INTENT_KEY_DICTIONARY_ID, dictionary.getId());
             intent.putExtra(RecordingActivity.INTENT_KEY_DICTIONARY_LABEL, dictionary.getLabel());
-            intent.putExtra(RecordingActivity.INTENT_KEY_TRANSLATION_ID, translationCard.getDbId());
+            intent.putExtra(RecordingActivity.INTENT_KEY_TRANSLATION_ID, translationCard.getId());
             intent.putExtra(RecordingActivity.INTENT_KEY_TRANSLATION_LABEL,
                     translationCard.getLabel());
             intent.putExtra(RecordingActivity.INTENT_KEY_TRANSLATION_IS_ASSET,
@@ -368,8 +365,8 @@ public class TranslationsActivity extends RoboActionBarActivity {
                     .setMessage("Are you sure you want to delete this translation card?")
                     .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
-                            dbm.deleteTranslation(translationId);
-                            dictionaries = dbm.getAllDictionariesForDeck(deck.getDbId());
+                            SugarRecord.findById(Translation.class, translationId).delete();
+                            dictionaries = deck.getDictionaries();
                             setDictionary(currentDictionaryIndex);
                             listAdapter.notifyDataSetChanged();
                         }
@@ -405,11 +402,11 @@ public class TranslationsActivity extends RoboActionBarActivity {
                 targetFile.delete();
             }
             TxcPortingUtility portingUtility = new TxcPortingUtility();
-            DbManager dbm = new DbManager(TranslationsActivity.this);
+            List<Dictionary> dictionaries = deck.getDictionaries();
             try {
                 portingUtility.exportData(
                         deck, exportedDeckName,
-                        dbm.getAllDictionariesForDeck(deck.getDbId()), targetFile);
+                        dictionaries.toArray(new Dictionary[dictionaries.size()]), targetFile);
             } catch (final ExportException e) {
                 TranslationsActivity.this.runOnUiThread(new Runnable() {
                     @Override

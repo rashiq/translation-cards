@@ -3,9 +3,11 @@ package org.mercycorps.translationcards.porting;
 import android.content.Context;
 import android.net.Uri;
 
-import org.mercycorps.translationcards.data.DbManager;
+import com.orm.SugarRecord;
+
 import org.mercycorps.translationcards.data.Deck;
 import org.mercycorps.translationcards.data.Dictionary;
+import org.mercycorps.translationcards.data.Translation;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -49,7 +51,7 @@ public class TxcPortingUtility {
                 throw new ExportException(ExportException.ExportProblem.TARGET_FILE_NOT_FOUND, e);
             }
             zos = new ZipOutputStream(os);
-            Map<String, Dictionary.Translation> translationFilenames =
+            Map<String, Translation> translationFilenames =
                     buildIndex(deck, exportedDeckName, dictionaries, zos);
             for (String filename : translationFilenames.keySet()) {
                 addFileToZip(filename, translationFilenames.get(filename), zos);
@@ -72,10 +74,10 @@ public class TxcPortingUtility {
         }
     }
 
-    private Map<String, Dictionary.Translation> buildIndex(
+    private Map<String, Translation> buildIndex(
             Deck deck, String exportedDeckname, Dictionary[] dictionaries, ZipOutputStream zos)
             throws ExportException {
-        Map<String, Dictionary.Translation> translationFilenames = new HashMap<>();
+        Map<String, Translation> translationFilenames = new HashMap<>();
         try {
             zos.putNextEntry(new ZipEntry(INDEX_FILENAME));
             String metaLine = String.format("META:%s|%s|%s|%d\n",
@@ -85,8 +87,7 @@ public class TxcPortingUtility {
             zos.write(metaLine.getBytes());
             for (Dictionary dictionary : dictionaries) {
                 String language = dictionary.getLabel();
-                for (int i = 0; i < dictionary.getTranslationCount(); i++) {
-                    Dictionary.Translation translation = dictionary.getTranslation(i);
+                for (Translation translation : dictionary.getTranslations()) {
                     String translationFilename = buildUniqueFilename(
                             translation, translationFilenames);
                     translationFilenames.put(translationFilename, translation);
@@ -103,8 +104,8 @@ public class TxcPortingUtility {
     }
 
     private String buildUniqueFilename(
-            Dictionary.Translation translation,
-            Map<String, Dictionary.Translation> translationFilenames) throws ExportException {
+            Translation translation,
+            Map<String, Translation> translationFilenames) throws ExportException {
         String baseName = new File(translation.getFilename()).getName();
         if (!translationFilenames.containsKey(baseName)) {
             return baseName;
@@ -123,7 +124,7 @@ public class TxcPortingUtility {
     }
 
     private void addFileToZip(
-            String filename, Dictionary.Translation translation, ZipOutputStream zos)
+            String filename, Translation translation, ZipOutputStream zos)
             throws ExportException {
         try {
             zos.putNextEntry(new ZipEntry(filename));
@@ -158,14 +159,19 @@ public class TxcPortingUtility {
         importInfo.dir.delete();
     }
 
-    public boolean isExistingDeck(Context context, ImportInfo importInfo) {
-        DbManager dbm = new DbManager(context);
-        return dbm.hasDeckWithHash(importInfo.hash);
+    public boolean isExistingDeck(ImportInfo importInfo) {
+        return SugarRecord.find(Deck.class, "hash = ?", importInfo.hash).size() > 0;
     }
 
     public long otherVersionExists(Context context, ImportInfo importInfo) {
-        DbManager dbm = new DbManager(context);
-        return dbm.hasDeckWithExternalId(importInfo.externalId);
+        // TODO(nworden): consider handling this better when there's multiple existing decks with
+        // this external ID
+
+        List<Deck> decks = SugarRecord.find(Deck.class, "externalId = ?", new String[] {importInfo.externalId}, null, "creationTimestamp DESC", "1");
+        if (decks.isEmpty()) {
+            return -1;
+        }
+        return decks.get(0).getId();
     }
 
     private String getFileHash(Context context, Uri source) throws ImportException {
@@ -303,9 +309,8 @@ public class TxcPortingUtility {
     }
 
     private void loadData(Context context, ImportInfo importInfo) {
-        DbManager dbm = new DbManager(context);
-        long deckId = dbm.addDeck(importInfo.label, importInfo.publisher, importInfo.timestamp,
-                importInfo.externalId, importInfo.hash, false);
+        long deckId = Deck.save(new Deck(importInfo.label, importInfo.publisher, importInfo.externalId, importInfo.timestamp, false, importInfo.hash));
+
         Map<String, Long> dictionaryLookup = new HashMap<>();
         int dictionaryIndex = 0;
         // Iterate backwards through the list, because we're adding each translation at the top of
@@ -315,13 +320,13 @@ public class TxcPortingUtility {
             File targetFile = new File(importInfo.dir, item.name);
             String dictionaryLookupKey = item.language.toLowerCase();
             if (!dictionaryLookup.containsKey(dictionaryLookupKey)) {
-                long dictionaryId = dbm.addDictionary(item.language, dictionaryIndex, deckId);
+                long dictionaryId = Dictionary.save(new Dictionary(item.language, deckId));
                 dictionaryIndex++;
                 dictionaryLookup.put(dictionaryLookupKey, dictionaryId);
             }
             long dictionaryId = dictionaryLookup.get(dictionaryLookupKey);
-            dbm.addTranslationAtTop(dictionaryId, item.text, false, targetFile.getAbsolutePath(),
-                    item.translatedText);
+
+            Translation.save(new Translation(item.text, false, targetFile.getAbsolutePath(), item.translatedText, dictionaryId));
         }
     }
 

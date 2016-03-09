@@ -15,10 +15,12 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import org.mercycorps.translationcards.data.DbManager;
+import com.orm.SugarRecord;
+
 import org.mercycorps.translationcards.R;
 import org.mercycorps.translationcards.data.Deck;
 import org.mercycorps.translationcards.data.Dictionary;
+import org.mercycorps.translationcards.data.Translation;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,7 +28,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -41,7 +42,6 @@ public class DecksActivity extends AppCompatActivity {
             "https://docs.google.com/forms/d/1p8nJlpFSv03MXWf67pjh_fHyOfjbK9LJgF8hORNcvNM/" +
                     "viewform?entry.1158658650=0.3.1";
     public static final String INTENT_KEY_DECK_ID = "Deck";
-    private DbManager dbManager;
 
 
     @Override
@@ -49,7 +49,6 @@ public class DecksActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_decks);
         initFeedbackButton();
-        dbManager = new DbManager(this);
         initDecks();
         getSupportActionBar().setTitle(R.string.my_decks);
         getSupportActionBar().setElevation(0);
@@ -57,15 +56,10 @@ public class DecksActivity extends AppCompatActivity {
 
     private void initDecks() {
         ListView decksListView = (ListView) findViewById(R.id.decks_list);
-        ArrayList<Deck> listItems = new ArrayList<>();
+        List<Deck> deckList = Deck.listAll(Deck.class);
         ArrayAdapter<Deck> listAdapter = new DecksAdapter(this,
-                R.layout.deck_item, R.id.deck_name, listItems, decksListView);
+                R.layout.deck_item, R.id.deck_name, deckList, decksListView);
         decksListView.setAdapter(listAdapter);
-
-        for (Deck deck : dbManager.getAllDecks()) {
-            listAdapter.add(deck);
-        }
-
     }
 
     private void initFeedbackButton() {
@@ -101,7 +95,7 @@ public class DecksActivity extends AppCompatActivity {
                     @Override
                     public void onClick(View v) {
                         Intent decksIntent = new Intent(DecksActivity.this, TranslationsActivity.class);
-                        decksIntent.putExtra(INTENT_KEY_DECK_ID, getItem(position));
+                        decksIntent.putExtra(INTENT_KEY_DECK_ID, getItem(position).getId());
                         DecksActivity.this.startActivity(decksIntent);
                     }
                 });
@@ -117,7 +111,8 @@ public class DecksActivity extends AppCompatActivity {
 
             TextView translationLanguagesView =
                     (TextView) convertView.findViewById(R.id.translation_languages);
-            translationLanguagesView.setText(dbManager.getTranslationLanguagesForDeck(deck.getDbId()));
+
+            translationLanguagesView.setText(deck.getDictionaryLanguages());
 
             View deckCopyView = convertView.findViewById(R.id.deck_card_expansion_copy);
             if (deck.isLocked()) {
@@ -164,18 +159,16 @@ public class DecksActivity extends AppCompatActivity {
         File targetDir = new File(new File(getFilesDir(), "recordings"),
                 String.format("copy-%d", (new Random()).nextInt()));
         targetDir.mkdirs();
-        DbManager dbm = new DbManager(this);
-        long deckId = dbm.addDeck(deckName, getString(R.string.data_self_publisher), (new Date()).getTime(), null, null, false);
-        Dictionary[] dictionaries = dbm.getAllDictionariesForDeck(deck.getDbId());
-        int dictionaryIndex = dictionaries.length - 1;
+
+        long newDeckId = new Deck(deckName, getString(R.string.data_self_publisher), null, (new Date()).getTime(), false, null).save();
+
+        List<Dictionary> dictionaries = deck.getDictionaries();
         try {
             for (Dictionary dictionary : dictionaries) {
-                long dictionaryId = dbm.addDictionary(
-                        dictionary.getLabel(), dictionaryIndex, deckId);
-                dictionaryIndex--;
-                int translationDbIndex = dictionary.getTranslationCount() - 1;
-                for (int i = 0; i < dictionary.getTranslationCount(); i++) {
-                    Dictionary.Translation translation = dictionary.getTranslation(i);
+
+                long newDictionaryId = new Dictionary(dictionary.getLabel(), newDeckId).save();
+
+                for (Translation translation : dictionary.getTranslations()) {
                     String filename = translation.getFilename();
                     if (!translation.getIsAsset()) {
                         File srcFile = new File(filename);
@@ -185,13 +178,11 @@ public class DecksActivity extends AppCompatActivity {
                         copyFile(srcFile, targetFile);
                         filename = targetFile.getAbsolutePath();
                     }
-                    dbm.addTranslation(dictionaryId, translation.getLabel(), translation.getIsAsset(),
-                            filename, translationDbIndex, translation.getTranslatedText());
-                    translationDbIndex--;
+                    new Translation(translation.getLabel(), translation.getIsAsset(), filename, translation.getTranslatedText(), newDictionaryId).save();
                 }
             }
         } catch (IOException e) {
-            dbm.deleteDeck(deckId);
+            SugarRecord.findById(Deck.class, newDeckId).delete();
         }
     }
 
@@ -214,7 +205,7 @@ public class DecksActivity extends AppCompatActivity {
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                dbManager.deleteDeck(deck.getDbId());
+                                SugarRecord.findById(Deck.class, deck.getId()).delete();
                                 initDecks();
                             }
                         })

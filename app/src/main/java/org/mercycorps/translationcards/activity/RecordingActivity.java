@@ -45,13 +45,14 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import org.mercycorps.translationcards.data.Dictionary;
-import org.mercycorps.translationcards.media.CardAudioClickListener;
-import org.mercycorps.translationcards.data.DbManager;
+import com.orm.SugarRecord;
+
 import org.mercycorps.translationcards.MainApplication;
-import org.mercycorps.translationcards.media.MediaPlayerManager;
 import org.mercycorps.translationcards.R;
 import org.mercycorps.translationcards.data.Deck;
+import org.mercycorps.translationcards.data.Translation;
+import org.mercycorps.translationcards.media.CardAudioClickListener;
+import org.mercycorps.translationcards.media.MediaPlayerManager;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -221,8 +222,7 @@ public class RecordingActivity extends AppCompatActivity {
             deleteButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    DbManager dbm = new DbManager(RecordingActivity.this);
-                    dbm.deleteTranslation(translationId);
+                    SugarRecord.findById(Translation.class, translationId).delete();
                     if (!isAsset) {
                         File oldFile = new File(filename);
                         oldFile.delete();
@@ -407,11 +407,15 @@ public class RecordingActivity extends AppCompatActivity {
                     // There's no recording yet, they're not done.
                     return;
                 }
-                DbManager dbm = new DbManager(RecordingActivity.this);
                 if (translationId == -1) {
-                    translationId = dbm.addTranslationAtTop(dictionaryId, label, false, filename, translatedText);
+                    translationId = new Translation(label, isAsset, filename, translatedText, dictionaryId).save();
                 } else {
-                    dbm.updateTranslation(translationId, label, isAsset, filename, translatedText);
+                    Translation translation = SugarRecord.findById(Translation.class, translationId);
+                    translation.setLabel(label);
+                    translation.setIsAsset(isAsset);
+                    translation.setFilename(filename);
+                    translation.setTranslatedText(translatedText);
+                    translation.save();
                     // If we're replacing the audio and the prior file wasn't an included audio
                     // asset, delete it.
                     if (filename != null && savedFilename != null &&
@@ -541,7 +545,7 @@ public class RecordingActivity extends AppCompatActivity {
         findViewById(R.id.translation_child_actions).setVisibility(View.GONE);
 
         final CardAudioClickListener cardAudioClickListener = new CardAudioClickListener(
-                new Dictionary.Translation(label, IS_ASSET, filename, NO_DB_ID, translatedText),
+                new Translation(label, IS_ASSET, filename, translatedText, 0),
                 (ProgressBar) findViewById(R.id.recording_done_progress_bar), mediaPlayerManager);
         findViewById(R.id.recording_done_card).setOnClickListener(cardAudioClickListener);
 

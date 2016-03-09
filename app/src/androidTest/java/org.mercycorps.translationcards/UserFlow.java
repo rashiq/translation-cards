@@ -4,10 +4,14 @@ import android.support.test.rule.ActivityTestRule;
 import android.support.test.runner.AndroidJUnit4;
 import android.test.suitebuilder.annotation.LargeTest;
 
+import com.orm.SugarRecord;
+
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mercycorps.translationcards.activity.DecksActivity;
+import org.mercycorps.translationcards.data.Translation;
 
 import static android.support.test.espresso.Espresso.closeSoftKeyboard;
 import static android.support.test.espresso.Espresso.onView;
@@ -15,6 +19,7 @@ import static android.support.test.espresso.action.ViewActions.click;
 import static android.support.test.espresso.action.ViewActions.replaceText;
 import static android.support.test.espresso.action.ViewActions.typeText;
 import static android.support.test.espresso.assertion.PositionAssertions.isRightOf;
+import static android.support.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static android.support.test.espresso.assertion.ViewAssertions.matches;
 import static android.support.test.espresso.matcher.ViewMatchers.withId;
 import static android.support.test.espresso.matcher.ViewMatchers.withText;
@@ -55,5 +60,12 @@ public class UserFlow {
         onView(withId(R.id.indicator_icon)).check(isRightOf(withText(ORIGIN_TEXT))).perform(click());
         onView(withText("Delete this flashcard")).perform(click());
         onView(withText("OK")).perform(click());
+
+        onView(withText(ORIGIN_TEXT)).check(doesNotExist());
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        SugarRecord.deleteAll(Translation.class);
     }
 }

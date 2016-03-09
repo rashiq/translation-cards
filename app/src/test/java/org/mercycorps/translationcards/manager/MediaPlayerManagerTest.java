@@ -6,14 +6,12 @@ import android.widget.ProgressBar;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mercycorps.translationcards.data.Dictionary;
+import org.mercycorps.translationcards.data.Translation;
 import org.mercycorps.translationcards.media.MediaPlayerManager;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,17 +19,16 @@ import static org.mockito.Mockito.when;
 public class MediaPlayerManagerTest {
 
     public static final int SOME_DURATION = 5;
-    public static final String ANY_FILENAME = "";
     private MediaPlayer mediaPlayer;
     private MediaPlayerManager mediaPlayerManager;
-    private Dictionary.Translation translation;
+    private Translation translation;
     public static final FileDescriptor ANY_FILE = new FileDescriptor();
 
     @Before
     public void setUp() throws Exception {
         mediaPlayer = mock(MediaPlayer.class);
         when(mediaPlayer.getDuration()).thenReturn(SOME_DURATION);
-        translation = mock(Dictionary.Translation.class);
+        translation = mock(Translation.class);
 
         mediaPlayerManager = new MediaPlayerManager(mediaPlayer);
     }

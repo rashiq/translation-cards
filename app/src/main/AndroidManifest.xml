@@ -13,6 +13,11 @@
         android:theme="@style/AppTheme"
         android:name=".MainApplication">
 
+        <meta-data android:name="DATABASE" android:value="TranslationCards.db" />
+        <meta-data android:name="VERSION" android:value="3" />
+        <meta-data android:name="DOMAIN_PACKAGE_NAME" android:value="org.mercycorps.translationcards.data" />
+        <meta-data android:name="QUERY_LOG" android:value="true" />
+
         <activity android:name=".activity.DecksActivity" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

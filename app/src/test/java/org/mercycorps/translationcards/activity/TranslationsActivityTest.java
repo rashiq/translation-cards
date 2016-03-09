@@ -1,6 +1,5 @@
 package org.mercycorps.translationcards.activity;
 
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.view.View;
 import android.widget.ImageView;
@@ -8,20 +7,17 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import com.google.inject.AbstractModule;
-
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mercycorps.translationcards.BuildConfig;
 import org.mercycorps.translationcards.R;
-import org.mercycorps.translationcards.data.DbManager;
 import org.mercycorps.translationcards.data.Deck;
 import org.mercycorps.translationcards.data.Dictionary;
+import org.mercycorps.translationcards.data.Translation;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricGradleTestRunner;
-import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowActivity;
@@ -34,11 +30,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.robolectric.Shadows.shadowOf;
 
 /**
@@ -58,45 +49,26 @@ public class TranslationsActivityTest {
     public static final String TRANSLATION_LABEL = "TranslationLabel";
     public static final String DEFAULT_DECK_NAME = "Default";
     private TranslationsActivity translationsActivity;
-    private DbManager dbManagerMock;
-    private Dictionary.Translation translation;
 
     @Before
     public void setUp() {
         RoboGuice.setUseAnnotationDatabases(false);
         Intent intent = new Intent();
-        Deck deck = new Deck(DEFAULT_DECK_NAME, NO_VALUE, NO_VALUE, DEFAULT_DECK_ID, DEFAULT_LONG, false);
-        intent.putExtra("Deck", deck);
-        initializeMockDbManager();
-        RoboGuice.overrideApplicationInjector(RuntimeEnvironment.application,
-                new TranslationsActivityTestModule());
-        RoboGuice.getInjector(RuntimeEnvironment.application).injectMembers(this);
+        Deck deck = new Deck(DEFAULT_DECK_NAME, NO_VALUE, NO_VALUE, DEFAULT_LONG, false, "");
+        deck.save();
+        Dictionary dictionary = new Dictionary(DICTIONARY_TEST_LABEL, deck.getId());
+        dictionary.save();
+        new Translation(TRANSLATION_LABEL, false, NO_VALUE, TRANSLATED_TEXT, dictionary.getId()).save();
+        new Translation(TRANSLATION_LABEL, false, NO_VALUE, null, dictionary.getId()).save();
+        intent.putExtra("Deck", deck.getId());
         translationsActivity = Robolectric.buildActivity(TranslationsActivity.class).withIntent(
                 intent).create().get();
-    }
-
-    private void initializeMockDbManager() {
-        dbManagerMock = mock(DbManager.class);
-        Dictionary[] dictionaries = new Dictionary[1];
-        translation = new Dictionary.Translation(TRANSLATION_LABEL, false, NO_VALUE, DEFAULT_LONG,
-                TRANSLATED_TEXT);
-        Dictionary.Translation nullTranslatedTextTranslation = new Dictionary.Translation(
-                TRANSLATION_LABEL, false, NO_VALUE, DEFAULT_LONG, null);
-        Dictionary.Translation[] translations = {translation, nullTranslatedTextTranslation};
-        dictionaries[0] = new Dictionary(DICTIONARY_TEST_LABEL, translations, DEFAULT_LONG,
-                DEFAULT_DECK_ID);
-        when(dbManagerMock.getAllDictionariesForDeck(DEFAULT_DECK_ID)).thenReturn(dictionaries);
     }
 
     @Test
     public void onCreate_shouldShowDeckNameInToolbar() {
         assertThat(translationsActivity.getSupportActionBar().getTitle().toString(), is(
                 DEFAULT_DECK_NAME));
-    }
-
-    @Test
-    public void onCreate_dbmGetsCalled() {
-        verify(dbManagerMock).getAllDictionariesForDeck(DEFAULT_DECK_ID);
     }
 
     @Test
@@ -166,10 +138,6 @@ public class TranslationsActivityTest {
         ShadowAlertDialog shadowAlertDialog = shadowOf(ShadowAlertDialog.getLatestAlertDialog());
         assertThat(shadowAlertDialog.getMessage().toString(),
                 is("Are you sure you want to delete this translation card?"));
-
-        ShadowAlertDialog.getLatestAlertDialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick();
-        verify(dbManagerMock).deleteTranslation(translation.getDbId());
-        verify(dbManagerMock, times(2)).getAllDictionariesForDeck(DEFAULT_DECK_ID);
     }
 
     @Test
@@ -224,14 +192,6 @@ public class TranslationsActivityTest {
 
         shadowActivity.onBackPressed();
         assertTrue(shadowActivity.isFinishing());
-    }
-
-    public class TranslationsActivityTestModule extends AbstractModule {
-        @Override
-        protected void configure() {
-            bind(DbManager.class).toInstance(dbManagerMock);
-        }
-
     }
 
     @Ignore

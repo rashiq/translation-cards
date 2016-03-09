@@ -14,6 +14,7 @@ import org.junit.runner.RunWith;
 import org.mercycorps.translationcards.BuildConfig;
 import org.mercycorps.translationcards.R;
 import org.mercycorps.translationcards.data.Deck;
+import org.mercycorps.translationcards.data.Dictionary;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.annotation.Config;
@@ -38,9 +39,17 @@ import static org.robolectric.Shadows.shadowOf;
 public class DecksActivityTest {
 
     private DecksActivity decksActivity;
+    private Deck defaultDeck;
+    private Dictionary dictionary;
 
     @Before
     public void setUp() throws Exception {
+        defaultDeck = new Deck("Label", "publisher", "external-id", new Date().getTime(), false, "");
+        defaultDeck.save();
+
+        dictionary = new Dictionary("label", defaultDeck.getId());
+        dictionary.save();
+
         decksActivity = Robolectric.setupActivity(DecksActivity.class);
     }
 
@@ -74,7 +83,7 @@ public class DecksActivityTest {
         ListView decksListView = (ListView) decksActivity.findViewById(R.id.decks_list);
 
         assertThat(decksListView.getAdapter().getCount(), is(2));
-        assertThat(((Deck) (decksListView.getAdapter().getItem(0))).getLabel(), is("Default"));
+        assertThat(((Deck) (decksListView.getAdapter().getItem(0))).getLabel(), is(defaultDeck.getLabel()));
     }
 
     @Test
@@ -83,18 +92,18 @@ public class DecksActivityTest {
         View decksListItem = decksListView.getAdapter().getView(0, null, decksListView);
 
         TextView deckName = (TextView) decksListItem.findViewById(R.id.deck_name);
-        assertThat(deckName.getText().toString(), is("Default"));
+        assertThat(deckName.getText().toString(), is(defaultDeck.getLabel()));
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yy");
         String date = dateFormat.format(new Date());
         TextView deckInformation = (TextView) decksListItem.findViewById(R.id.deck_information);
-        assertThat(deckInformation.getText().toString(), is("My Deck, "+ date));
+        assertThat(deckInformation.getText().toString(), is(defaultDeck.getPublisher().concat(", ").concat(date)));
 
         TextView originLanguage = (TextView) decksListItem.findViewById(R.id.origin_language);
         assertThat(originLanguage.getText().toString(), is("ENGLISH"));
 
         TextView translationLanguages = (TextView) decksListItem.findViewById(R.id.translation_languages);
-        assertThat(translationLanguages.getText().toString(), is("ARABIC   FARSI   PASHTO"));
+        assertThat(translationLanguages.getText().toString(), is(dictionary.getLabel().toUpperCase()));
     }
 
     @Test
@@ -107,8 +116,7 @@ public class DecksActivityTest {
 
         Intent nextStartedActivity = shadowOf(decksActivity).getNextStartedActivity();
         assertThat(nextStartedActivity.getComponent().getClassName(), is(TranslationsActivity.class.getCanonicalName()));
-        Deck deck = (Deck) nextStartedActivity.getSerializableExtra("Deck");
-        assertThat(deck.getLabel(), is("Default"));
-        assertThat(deck.getDbId(), is((long) 1));
+        Long deckId = nextStartedActivity.getLongExtra("Deck", -1);
+        assertThat(deckId, is(defaultDeck.getId()));
     }
 }

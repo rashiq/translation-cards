@@ -7,9 +7,11 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
-import org.mercycorps.translationcards.data.DbManager;
-import org.mercycorps.translationcards.porting.ImportException;
+import com.orm.SugarRecord;
+
 import org.mercycorps.translationcards.R;
+import org.mercycorps.translationcards.data.Deck;
+import org.mercycorps.translationcards.porting.ImportException;
 import org.mercycorps.translationcards.porting.TxcPortingUtility;
 
 public class ImportActivity extends AppCompatActivity {
@@ -49,7 +51,7 @@ public class ImportActivity extends AppCompatActivity {
             TxcPortingUtility.ImportInfo importInfo =
                     portingUtility.prepareImport(ImportActivity.this, source);
             // Check if it's a deck we've already imported.
-            if (false && portingUtility.isExistingDeck(this, importInfo)) {
+            if (false && portingUtility.isExistingDeck(importInfo)) {
                 portingUtility.abortImport(this, importInfo);
                 alertUserOfFailure(getString(R.string.import_failure_existing_deck));
                 return;
@@ -96,8 +98,7 @@ public class ImportActivity extends AppCompatActivity {
                                     handleError(e);
                                     return;
                                 }
-                                DbManager dbm = new DbManager(ImportActivity.this);
-                                dbm.deleteDeck(otherVersion);
+                                SugarRecord.findById(Deck.class, otherVersion).delete();
                                 goToMainScreen();
                                 break;
                         }
