@@ -7,7 +7,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -68,7 +67,7 @@ public class DecksActivity extends AppCompatActivity {
                 R.layout.deck_item, R.id.deck_name, listItems, decksListView);
         decksListView.setAdapter(listAdapter);
 
-        for (Deck deck : dbManager.getAllDecks()) {
+        for (Deck deck : DbRecord.fetchAll()) {
             listAdapter.add(deck);
         }
     }
@@ -147,7 +146,7 @@ public class DecksActivity extends AppCompatActivity {
 
             TextView translationLanguagesView =
                     (TextView) convertView.findViewById(R.id.translation_languages);
-            translationLanguagesView.setText(dbManager.getTranslationLanguagesForDeck(deck.getDbId()));
+            translationLanguagesView.setText(deck.getTranslationLanguages());
 
             View deckCopyView = convertView.findViewById(R.id.deck_card_expansion_copy);
             if (deck.isLocked()) {
@@ -194,13 +193,12 @@ public class DecksActivity extends AppCompatActivity {
         File targetDir = new File(new File(getFilesDir(), "recordings"),
                 String.format("copy-%d", (new Random()).nextInt()));
         targetDir.mkdirs();
-        DbManager dbm = new DbManager(this);
-        long deckId = dbm.addDeck(deckName, getString(R.string.data_self_publisher), (new Date()).getTime(), null, null, false);
-        Dictionary[] dictionaries = dbm.getAllDictionariesForDeck(deck.getDbId());
+        long deckId = new Deck(deckName, getString(R.string.data_self_publisher), null, new Date().getTime(), false).save();
+        Dictionary[] dictionaries = deck.getAllDictionaries();
         int dictionaryIndex = dictionaries.length - 1;
         try {
             for (Dictionary dictionary : dictionaries) {
-                long dictionaryId = dbm.addDictionary(
+                long dictionaryId = dbManager.addDictionary(
                         dictionary.getLabel(), dictionaryIndex, deckId);
                 dictionaryIndex--;
                 int translationDbIndex = dictionary.getTranslationCount() - 1;
@@ -215,13 +213,13 @@ public class DecksActivity extends AppCompatActivity {
                         copyFile(srcFile, targetFile);
                         filename = targetFile.getAbsolutePath();
                     }
-                    dbm.addTranslation(dictionaryId, translation.getLabel(), translation.getIsAsset(),
+                    dbManager.addTranslation(dictionaryId, translation.getLabel(), translation.getIsAsset(),
                             filename, translationDbIndex, translation.getTranslatedText());
                     translationDbIndex--;
                 }
             }
         } catch (IOException e) {
-            dbm.deleteDeck(deckId);
+            deck.delete();
         }
     }
 
@@ -244,7 +242,7 @@ public class DecksActivity extends AppCompatActivity {
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                dbManager.deleteDeck(deck.getDbId());
+                                deck.delete();
                                 initDecks();
                             }
                         })
