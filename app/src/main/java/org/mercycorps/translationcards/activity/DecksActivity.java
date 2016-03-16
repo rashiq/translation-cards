@@ -82,9 +82,7 @@ public class DecksActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         switch (which) {
                             case 0:
-                                Intent fileIntent = new Intent(Intent.ACTION_GET_CONTENT);
-                                fileIntent.setType("file/*");
-                                startActivityForResult(fileIntent, REQUEST_CODE_IMPORT_FILE_PICKER);
+                                importFromFile();
                                 break;
                             case 1:
                                 Intent createIntent =
@@ -97,6 +95,23 @@ public class DecksActivity extends AppCompatActivity {
                 builder.show();
             }
         });
+    }
+
+    private void importFromFile() {
+        // First try an intent specially for the Samsung file browser, as described here:
+        // http://stackoverflow.com/a/17949893
+        // Note that this means that, if a user has the Samsung file browser and another file
+        // browser, they will not get a choice; we'll just send them to the Samsung browser.
+        Intent samsungIntent = new Intent("com.sec.android.app.myfiles.PICK_DATA");
+        samsungIntent.addCategory(Intent.CATEGORY_DEFAULT);
+        if (getPackageManager().resolveActivity(samsungIntent, 0) != null) {
+            startActivityForResult(samsungIntent, REQUEST_CODE_IMPORT_FILE_PICKER);
+        } else {
+            Intent fileIntent = new Intent(Intent.ACTION_GET_CONTENT);
+            fileIntent.setType("file/*");
+            startActivityForResult(fileIntent, REQUEST_CODE_IMPORT_FILE_PICKER);
+        }
+
     }
 
     private void initFeedbackButton() {
