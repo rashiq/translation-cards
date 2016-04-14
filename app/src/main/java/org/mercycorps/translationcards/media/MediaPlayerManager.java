@@ -1,5 +1,7 @@
 package org.mercycorps.translationcards.media;
 
+import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.media.MediaPlayer;
 import android.util.Log;
 import android.widget.ProgressBar;
@@ -7,6 +9,7 @@ import android.widget.ProgressBar;
 import org.mercycorps.translationcards.data.Translation;
 
 import java.io.FileDescriptor;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -36,7 +39,7 @@ public class MediaPlayerManager implements Runnable {
 
     private void resetProgressBar() {
         if (progressBar != null) {
-           progressBar.setProgress(0);
+            progressBar.setProgress(0);
         }
     }
 
@@ -68,12 +71,12 @@ public class MediaPlayerManager implements Runnable {
         }
     }
 
-    public void play(FileDescriptor audioFile, ProgressBar progressBar, Translation translation) {
+    public void play(Context context, ProgressBar progressBar, Translation translation) {
         lock.lock();
         resetProgressBar();
         this.translation = translation;
         this.progressBar = progressBar;
-        prepareMediaPlayer(audioFile);
+        prepareMediaPlayer(context, translation);
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
@@ -87,9 +90,15 @@ public class MediaPlayerManager implements Runnable {
         lock.unlock();
     }
 
-    private void prepareMediaPlayer(FileDescriptor audioFile) {
+    private void prepareMediaPlayer(Context context, Translation translation) {
         try {
-            mediaPlayer.setDataSource(audioFile);
+            if (translation.getIsAsset()) {
+                AssetFileDescriptor fd = context.getAssets().openFd(translation.getFilename());
+                mediaPlayer.setDataSource(fd.getFileDescriptor());
+                fd.close();
+            } else {
+                mediaPlayer.setDataSource(new FileInputStream(translation.getFilename()).getFD());
+            }
             mediaPlayer.prepare();
         } catch (IOException e) {
             Log.d(TAG, "Error getting audio asset: " + e);

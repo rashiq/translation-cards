@@ -281,8 +281,8 @@ public class TranslationsActivity extends AppCompatActivity {
 
             ProgressBar progressBar = (ProgressBar) convertView.findViewById(
                     R.id.list_item_progress_bar);
-            cardTextView.setOnClickListener(new CardAudioClickListener(getItem(position), progressBar,
-                    lastMediaPlayerManager));
+            cardTextView.setOnClickListener(new CardAudioClickListener(TranslationsActivity.this,
+                    getItem(position), progressBar, lastMediaPlayerManager));
 
             TextView translatedText = (TextView) convertView.findViewById(R.id.translated_text);
             if(getItem(position).getTranslatedText().isEmpty()){
@@ -299,8 +299,8 @@ public class TranslationsActivity extends AppCompatActivity {
             }
 
             convertView.findViewById(R.id.translated_text_layout)
-                    .setOnClickListener(new CardAudioClickListener(getItem(position), progressBar,
-                            lastMediaPlayerManager));
+                    .setOnClickListener(new CardAudioClickListener(TranslationsActivity.this,
+                            getItem(position), progressBar, lastMediaPlayerManager));
 
             return convertView;
         }

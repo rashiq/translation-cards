@@ -1,5 +1,6 @@
 package org.mercycorps.translationcards.media;
 
+import android.content.Context;
 import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -15,12 +16,14 @@ import java.io.IOException;
  */
 public class CardAudioClickListener implements View.OnClickListener {
     private static final String TAG = "CardAudioClickListener";
+    private final Context context;
     private Translation translation;
     private final ProgressBar progressBar;
     private MediaPlayerManager lastMediaPlayerManager;
 
-    public CardAudioClickListener(Translation translation, ProgressBar progressBar,
+    public CardAudioClickListener(Context context, Translation translation, ProgressBar progressBar,
                                   MediaPlayerManager lastMediaPlayerManager) {
+        this.context = context;
         this.translation = translation;
         this.progressBar = progressBar;
         this.lastMediaPlayerManager = lastMediaPlayerManager;
@@ -32,7 +35,7 @@ public class CardAudioClickListener implements View.OnClickListener {
             stopMediaPlayer();
         } else {
             stopMediaPlayer();
-            lastMediaPlayerManager.play(getFileDescriptor(), progressBar, translation);
+            lastMediaPlayerManager.play(context, progressBar, translation);
         }
     }
 
@@ -40,26 +43,5 @@ public class CardAudioClickListener implements View.OnClickListener {
         if (lastMediaPlayerManager != null) {
             lastMediaPlayerManager.stop();
         }
-    }
-
-    private FileDescriptor getFileDescriptor() {
-        FileDescriptor fileDescriptor;
-        try {
-            fileDescriptor = loadFile();
-        } catch (IOException e) {
-            Log.d(TAG, "Error preparing audio.");
-            throw new IllegalArgumentException(e);
-        }
-        return fileDescriptor;
-    }
-
-    private FileDescriptor loadFile() throws IOException {
-        FileDescriptor fileDescriptor;
-        if (translation.getIsAsset()) {
-            fileDescriptor = progressBar.getContext().getAssets().openFd(translation.getFilename()).getFileDescriptor();
-        } else {
-            fileDescriptor = new FileInputStream(translation.getFilename()).getFD();
-        }
-        return fileDescriptor;
     }
 }
