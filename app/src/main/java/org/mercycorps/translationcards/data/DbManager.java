@@ -67,8 +67,9 @@ public class DbManager {
                     DictionariesTable.LANGUAGE_ISO));
             String label = cursor.getString(cursor.getColumnIndex(DictionariesTable.LABEL));
             long dictionaryId = cursor.getLong(cursor.getColumnIndex(DictionariesTable.ID));
+            Translation[] translationsByDictionaryId = new TranslationFinder(dbh).getTranslationsByDictionaryId(dictionaryId);
             Dictionary dictionary = new Dictionary(destLanguageIso, label,
-                    getTranslationsByDictionaryId(dictionaryId), dictionaryId, deckId);
+                    translationsByDictionaryId, dictionaryId, deckId);
             dictionaries[i] = dictionary;
             i++;
             hasNext = cursor.moveToNext();
@@ -312,7 +313,7 @@ public class DbManager {
         public static final String ITEM_INDEX = "itemIndex";
     }
 
-    private class TranslationsTable {
+    public class TranslationsTable {
         public static final String TABLE_NAME = "translations";
         public static final String ID = "id";
         public static final String DICTIONARY_ID = "dictionaryId";
@@ -323,7 +324,7 @@ public class DbManager {
         public static final String TRANSLATED_TEXT = "translationText";
     }
 
-    private class DbHelper extends SQLiteOpenHelper {
+    public class DbHelper extends SQLiteOpenHelper {
 
         private static final String DATABASE_NAME = "TranslationCards.db";
         private static final int DATABASE_VERSION = 3;

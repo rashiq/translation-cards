@@ -4,7 +4,10 @@ import org.mercycorps.translationcards.MainApplication;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -22,7 +25,7 @@ public class Deck implements Serializable {
     private boolean locked;
     private String srcLanguageIso;
     // The dictionaries list is lazily initialized.
-    private Dictionary[] dictionaries;
+    private List<Dictionary> dictionaries;
 
     public Deck(String label, String publisher, String externalId, long dbId, long timestamp,
                 boolean locked, String srcLanguageIso) {
@@ -36,9 +39,11 @@ public class Deck implements Serializable {
         dictionaries = null;
     }
 
-    public Deck(String label, String publisher, String externalId, long timestamp, boolean locked,
-                String srcLanguageIso) {
+    public Deck(String label, String publisher, String externalId, int i, long timestamp, boolean locked,
+                String srcLanguageIso, List<Dictionary> dictionaries) {
         this(label, publisher, externalId, -1, timestamp, locked, srcLanguageIso);
+
+        this.dictionaries = dictionaries;
     }
 
     public Deck() {
@@ -79,9 +84,10 @@ public class Deck implements Serializable {
         return srcLanguageIso;
     }
 
-    public Dictionary[] getDictionaries() {
+    public List<Dictionary> getDictionaries() {
         if (dictionaries == null) {
-            dictionaries = ((MainApplication) MainApplication.getContextFromMainApp()).getDbManager().getAllDictionariesForDeck(dbId);
+            MainApplication contextFromMainApp = (MainApplication) MainApplication.getContextFromMainApp();
+            dictionaries = Arrays.asList(contextFromMainApp.getDbManager().getAllDictionariesForDeck(dbId));
         }
         return dictionaries;
     }
@@ -98,7 +104,14 @@ public class Deck implements Serializable {
         ((MainApplication) MainApplication.getContextFromMainApp()).getDbManager().deleteDeck(dbId);
     }
 
-    public void update() {
-
+    public void deleteTranslation(String sourcePhrase) {
+        for (Dictionary dictionary : dictionaries) {
+            dictionary.deleteTranslation(sourcePhrase);
+//            Translation translationBySourcePhrase = dictionary.getTranslationBySourcePhrase(translation.getLabel());
+//            dbManager.deleteTranslation(translationBySourcePhrase.getDbId());
+        }
+//        dictionaries = dbManager.getAllDictionariesForDeck(deck.getDbId());
+//        setDictionary(currentDictionaryIndex);
+//        listAdapter.notifyDataSetChanged();
     }
 }

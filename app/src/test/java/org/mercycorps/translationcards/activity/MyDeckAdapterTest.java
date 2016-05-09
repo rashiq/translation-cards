@@ -24,6 +24,9 @@ import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowDialog;
 import org.robolectric.shadows.ShadowPopupMenu;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
@@ -63,7 +66,10 @@ public class MyDeckAdapterTest {
     private View getAdapterViewForDeck(Deck deck) {
         Intent intent = new Intent();
         activity = Robolectric.buildActivity(MyDecksActivity.class).withIntent(intent).create().get();
-        when(deck.getDictionaries()).thenReturn(new Dictionary[]{new Dictionary(ALPHABETICALLY_HIGH_LANGUAGE), new Dictionary(DEFAULT_TRANSLATION_LANGUAGE)});
+        List<Dictionary> dictionaries = new ArrayList<>();
+        dictionaries.add(new Dictionary(ALPHABETICALLY_HIGH_LANGUAGE));
+        dictionaries.add(new Dictionary(DEFAULT_TRANSLATION_LANGUAGE));
+        when(deck.getDictionaries()).thenReturn(dictionaries);
         ArrayAdapter<Deck> adapter = new MyDeckAdapter(activity, R.layout.deck_item, R.id.deck_name, singletonList(deck));
         return adapter.getView(0, null, null);
     }

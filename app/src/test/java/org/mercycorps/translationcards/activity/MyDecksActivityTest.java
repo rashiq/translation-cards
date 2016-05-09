@@ -114,7 +114,7 @@ public class MyDecksActivityTest {
     private Deck[] mockDecks(boolean shouldCreateDeck){
         if(!shouldCreateDeck) return null;
         Deck[] arrayOfDecks = new Deck[1];
-        Deck deck = new Deck("", "", "", 0l, false, DEFAULT_ISO_CODE);
+        Deck deck = new Deck("", "", "", -1, 0l, false, DEFAULT_ISO_CODE);
         arrayOfDecks[0] = deck;
         return arrayOfDecks;
     }

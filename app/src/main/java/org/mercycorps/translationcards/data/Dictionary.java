@@ -104,4 +104,8 @@ public class Dictionary implements Serializable {
     public String toString() {
         return label;
     }
+
+    public void deleteTranslation(String sourcePhrase) {
+
+    }
 }

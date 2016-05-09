@@ -12,8 +12,10 @@ import org.mercycorps.translationcards.MainApplication;
 import org.mercycorps.translationcards.R;
 import org.mercycorps.translationcards.activity.TranslationsActivity;
 import org.mercycorps.translationcards.data.Deck;
+import org.mercycorps.translationcards.data.Dictionary;
 
 import java.io.File;
+import java.util.Arrays;
 
 /**
  * Created by njimenez on 4/26/16.
@@ -46,7 +48,7 @@ public class ExportTask extends AsyncTask<Void, Void, Boolean> {
         }
         TxcPortingUtility portingUtility = new TxcPortingUtility();
         try {
-            portingUtility.exportData(deck, exportedDeckName, deck.getDictionaries(), targetFile);
+            portingUtility.exportData(deck, exportedDeckName, (Dictionary[]) deck.getDictionaries().toArray(), targetFile);
         } catch (final ExportException e) {
             activity.runOnUiThread(new Runnable() {
                 @Override
