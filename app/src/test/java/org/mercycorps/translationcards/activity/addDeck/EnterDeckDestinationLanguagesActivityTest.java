@@ -36,18 +36,18 @@ public class EnterDeckDestinationLanguagesActivityTest {
     private static final String EMPTY_LANGUAGE = "";
 
     @Test
-    public void shouldGoToMyDecksActivityWhenNextButtonClicked() {
+    public void shouldGoToAuthorAndLockActivityWhenNextButtonClicked() {
         NewDeckContext newDeckContext = new NewDeckContext(new Deck(), A_LANGUAGE, false);
         Activity activity = createActivityToTestWithContext(EnterDeckDestinationLanguagesActivity.class, newDeckContext);
         click(activity, R.id.enter_destination_next_label);
-        assertEquals(MyDecksActivity.class.getName(), shadowOf(activity).getNextStartedActivity().getComponent().getClassName());
+        assertEquals(AuthorAndLockActivity.class.getName(), shadowOf(activity).getNextStartedActivity().getComponent().getClassName());
     }
 
     @Test
-    public void shouldGoToEnterTitleActivityWhenBackButtonIsClicked() {
+    public void shouldGoToEnterDeckSourceLanguageActivityWhenBackButtonIsClicked() {
         Activity activity = createActivityToTest(EnterDeckDestinationLanguagesActivity.class);
         click(activity, R.id.enter_destination_back_arrow);
-        assertEquals(EnterDeckTitleActivity.class.getName(), shadowOf(activity).getNextStartedActivity().getComponent().getClassName());
+        assertEquals(EnterDeckSourceLanguageActivity.class.getName(), shadowOf(activity).getNextStartedActivity().getComponent().getClassName());
     }
 
     @Test
@@ -86,15 +86,6 @@ public class EnterDeckDestinationLanguagesActivityTest {
         setText(activity, R.id.enter_deck_destination_input, languagesInput);
         click(activity, R.id.enter_destination_next_label);
         verify(newDeckContext).updateLanguagesInput(languagesInput);
-    }
-
-    @Test
-    public void shouldSaveNewDeckContextWhenUserClicksSave() {
-        NewDeckContext newDeckContext = mock(NewDeckContext.class);
-        Activity activity = createActivityToTestWithContext(EnterDeckDestinationLanguagesActivity.class, newDeckContext);
-        setText(activity, R.id.enter_deck_destination_input, "Arabic ");
-        click(activity, R.id.enter_destination_next_label);
-        verify(newDeckContext).save();
     }
 
     @Test
@@ -153,18 +144,5 @@ public class EnterDeckDestinationLanguagesActivityTest {
         Activity activity = createActivityToTest(EnterDeckDestinationLanguagesActivity.class);
         click(activity, R.id.enter_destination_next_label);
         assertNull(shadowOf(activity).getNextStartedActivity());
-    }
-
-    @Test
-    public void shouldUpdateDeckInDatabaseWhenDeckIsSavedAfterEditing() {
-        NewDeckContext newDeckContext = mock(NewDeckContext.class);
-        when(newDeckContext.getIsEditFlag()).thenReturn(true);
-        when(newDeckContext.getLanguagesInput()).thenReturn("arabic");
-
-        Activity activity = createActivityToTestWithContext(EnterDeckDestinationLanguagesActivity.class, newDeckContext);
-
-        click(activity, R.id.enter_destination_next_label);
-
-        verify(newDeckContext).update();
     }
 }
