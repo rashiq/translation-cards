@@ -13,6 +13,8 @@ public class TestAddDeckActivityHelper {
     public static final String INTENT_KEY_DECK = "Deck";
     public static final String DEFAULT_DECK_NAME = "MercyCorps Deck";
     public static final String DEFAULT_DECK_ISO_CODE = "en";
+    public static final String DEFAULT_SOURCE_LANGUAGE ="English" ;
+    public static final String DEFAULT_SOURCE_LANGUAGE_ISO = "en" ;
 
     public static Activity createActivityToTest(Class<? extends AbstractTranslationCardsActivity> instanceOfClass) {
         Intent intent = new Intent();
