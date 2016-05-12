@@ -15,6 +15,8 @@ public class TestAddDeckActivityHelper {
     public static final String DEFAULT_DECK_ISO_CODE = "en";
     public static final String DEFAULT_SOURCE_LANGUAGE ="English" ;
     public static final String DEFAULT_SOURCE_LANGUAGE_ISO = "en" ;
+    public static final String DEFAULT_DECK_AUTHOR = "TW" ;
+    public static final String NEW_AUTHOR = "Some Author";
 
     public static Activity createActivityToTest(Class<? extends AbstractTranslationCardsActivity> instanceOfClass) {
         Intent intent = new Intent();
@@ -25,7 +27,7 @@ public class TestAddDeckActivityHelper {
 
     public static Activity createActivityToTestWithDefaultDeck(Class<? extends AbstractTranslationCardsActivity> instanceOfClass) {
         Intent intent = new Intent();
-        NewDeckContext defaultDeckContext = new NewDeckContext(new Deck(DEFAULT_DECK_NAME, "", "", -1, true, DEFAULT_DECK_ISO_CODE), "", false);
+        NewDeckContext defaultDeckContext = new NewDeckContext(new Deck(DEFAULT_DECK_NAME, DEFAULT_DECK_AUTHOR, "", -1, true, DEFAULT_DECK_ISO_CODE), "", false);
         intent.putExtra(INTENT_KEY_DECK, defaultDeckContext);
         return Robolectric.buildActivity(instanceOfClass).withIntent(intent).create().get();
     }
